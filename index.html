@@ -7,23 +7,36 @@
   body, html {
     margin:0; padding:0; height:100%; width:100%;
     font-family: Arial; background:#222; color:white; overflow:hidden;
+    display:flex; justify-content:center; align-items:center;
   }
-  #menu, #levelMenu, #settingsMenu, #shopMenu {
-    position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);
-    text-align:center; display:flex; flex-direction:column; gap:15px;
+
+  /* القوائم */
+  .menu {
+    display:flex; flex-direction:column; gap:20px; text-align:center;
   }
-  button {
-    font-size:20px; padding:10px 20px; cursor:pointer; border:none; border-radius:8px;
-    background:gold; color:#222;
+
+  .menu button {
+    font-size:24px; padding:15px 30px;
+    cursor:pointer; border:none; border-radius:8px;
+    background:gold; color:#222; transition:0.2s;
   }
-  canvas { background:black; display:block; margin:auto; }
+
+  .menu button:hover {
+    background:#ff0;
+  }
+
+  canvas {
+    display:block; margin:auto;
+    background:black;
+  }
+
   .hidden { display:none; }
 </style>
 </head>
 <body>
 
 <!-- شاشة البداية -->
-<div id="menu">
+<div id="menu" class="menu">
   <button id="startBtn">ابدأ</button>
   <button id="soundBtn">الصوت</button>
   <button id="shopBtn">سلة شراء</button>
@@ -31,20 +44,20 @@
 </div>
 
 <!-- اختيار المستوى -->
-<div id="levelMenu" class="hidden">
+<div id="levelMenu" class="menu hidden">
   <button class="levelBtn" data-speed="2">سهل</button>
   <button class="levelBtn" data-speed="4">عادي</button>
   <button class="levelBtn" data-speed="6">صعب</button>
 </div>
 
 <!-- إعدادات -->
-<div id="settingsMenu" class="hidden">
+<div id="settingsMenu" class="menu hidden">
   <button id="controlMobileBtn">تحكم الموبايل</button>
   <button id="controlPCBtn">تحكم الكمبيوتر</button>
 </div>
 
 <!-- سلة شراء -->
-<div id="shopMenu" class="hidden">
+<div id="shopMenu" class="menu hidden">
   <button class="ballColorBtn" data-color="green">أخضر</button>
   <button class="ballColorBtn" data-color="red">أحمر</button>
   <button class="ballColorBtn" data-color="black">أسود</button>
@@ -68,7 +81,7 @@ let ballColor = 'green';
 let ballSpeed = 2;
 let score = 0;
 let lives = 3;
-let control = 'mobile'; // أو 'pc'
+let control = 'mobile';
 
 // تغيير حجم الكانفاس على حسب الشاشة
 function resizeCanvas() {
@@ -121,12 +134,12 @@ function startGame() {
   score = 0;
   lives = 3;
 
-  // إنشاء كرات أولية
+  // إنشاء كرات أولية كبيرة
   for(let i=0;i<5;i++){
     balls.push({
       x: Math.random()*canvas.width,
       y: Math.random()*canvas.height,
-      r: 30,
+      r: 50, // حجم كبير
       dx: (Math.random()-0.5)*ballSpeed,
       dy: (Math.random()-0.5)*ballSpeed,
     });
@@ -151,7 +164,7 @@ function tapBall(e){
       balls.push({
         x: Math.random()*canvas.width,
         y: Math.random()*canvas.height,
-        r:30,
+        r:50,
         dx: (Math.random()-0.5)*ballSpeed,
         dy: (Math.random()-0.5)*ballSpeed,
       });
@@ -163,7 +176,6 @@ function tapBall(e){
 function gameLoop(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  // الكرات
   balls.forEach(b=>{
     b.x+=b.dx; b.y+=b.dy;
     if(b.x<b.r||b.x>canvas.width-b.r) b.dx*=-1;
@@ -174,7 +186,6 @@ function gameLoop(){
     ctx.fill();
   });
 
-  // عرض النتيجة
   ctx.fillStyle='white';
   ctx.font='20px Arial';
   ctx.fillText('Score: '+score+' | Lives: '+lives, 10, 30);
@@ -182,6 +193,5 @@ function gameLoop(){
   requestAnimationFrame(gameLoop);
 }
 </script>
-
 </body>
 </html>
