@@ -5,32 +5,33 @@
 <title>Legendary Falling Balls Game</title>
 <style>
 body { margin:0; padding:0; font-family:Arial; background:#87CEEB; text-align:center; }
-canvas { display:block; margin:0; border:3px solid black; }
-#startScreen, #gameOverScreen, #settingsScreen, #colorScreen, #levelScreen {
+canvas { display:block; margin:0 auto; border:3px solid black; }
+#startScreen, #settingsScreen, #colorScreen, #levelScreen, #gameOverScreen {
     position:fixed; top:0; left:0; width:100%; height:100%;
     background:rgba(0,0,0,0.8); color:white; display:flex;
     flex-direction:column; justify-content:center; align-items:center;
     font-size:30px; z-index:10;
 }
 .hidden { display:none; }
-button { font-size:18px; padding:8px 15px; margin:3px; cursor:pointer; }
+button { font-size:18px; padding:10px 20px; margin:5px; cursor:pointer; }
+.colorBtn { width:50px; height:50px; margin:5px; border:none; cursor:pointer; }
 #scoreBox { font-size:20px; background:white; padding:5px; border:2px solid black; }
 #shop { background:white; border:2px solid black; padding:5px; font-size:18px; }
-.colorBtn { width:50px; height:50px; margin:5px; border:none; cursor:pointer; }
 </style>
 </head>
 <body>
 
 <!-- شاشة البداية -->
 <div id="startScreen">
-    <div>🔥 LEGENDARY MODE 🔥</div>
-    <button id="settingsBtn">إعدادات</button>
-    <button id="colorBtnScreen">سلة شراء الألوان</button>
+    <h1>🔥 LEGENDARY MODE 🔥</h1>
+    <button id="startBtn">ابدأ</button>
+    <button id="settingsBtn">⚙️ إعدادات</button>
+    <button id="colorBtnScreen">🛒 سلة الألوان</button>
 </div>
 
 <!-- شاشة الإعدادات -->
 <div id="settingsScreen" class="hidden">
-    <div>⚙️ إعدادات</div>
+    <h2>⚙️ إعدادات</h2>
     <button id="mouseControlBtn">تحكم بالماوس</button>
     <button id="touchControlBtn">تحكم باللمس</button>
     <button id="settingsConfirmBtn" class="hidden">تأكيد التحكم</button>
@@ -39,7 +40,7 @@ button { font-size:18px; padding:8px 15px; margin:3px; cursor:pointer; }
 
 <!-- شاشة اختيار الألوان -->
 <div id="colorScreen" class="hidden">
-    <div>🛒 اختر ألوان الكرات</div>
+    <h2>🛒 اختر ألوان الكرات</h2>
     <div id="colorOptions">
         <button class="colorBtn" style="background:green;" data-color="green"></button>
         <button class="colorBtn" style="background:red;" data-color="red"></button>
@@ -47,12 +48,12 @@ button { font-size:18px; padding:8px 15px; margin:3px; cursor:pointer; }
         <button class="colorBtn" style="background:white;" data-color="white"></button>
         <button class="colorBtn" style="background:purple;" data-color="purple"></button>
     </div>
-    <button id="colorConfirmBtn">تأكيد</button>
+    <button id="colorConfirmBtn">تأكيد الألوان</button>
 </div>
 
 <!-- شاشة اختيار المستوى -->
 <div id="levelScreen" class="hidden">
-    <div>اختر المستوى</div>
+    <h2>اختر المستوى</h2>
     <button class="levelBtn" data-level="easy">سهل</button>
     <button class="levelBtn" data-level="normal">عادي</button>
     <button class="levelBtn" data-level="hard">صعب</button>
@@ -60,13 +61,13 @@ button { font-size:18px; padding:8px 15px; margin:3px; cursor:pointer; }
 
 <!-- شاشة Game Over -->
 <div id="gameOverScreen" class="hidden">
-    <div>Game Over</div>
-    <div id="finalScore"></div>
-    <div id="highScoreDisplay"></div>
+    <h2>Game Over</h2>
+    <p id="finalScore"></p>
+    <p id="highScoreDisplay"></p>
     <button id="restartBtn">Restart</button>
 </div>
 
-<!-- لوحة المعلومات -->
+<!-- Score & Shop -->
 <div id="scoreBox">
 Score: <span id="score">0</span> |
 Coins: <span id="coins">0</span> |
@@ -92,24 +93,18 @@ High Score: <span id="highScore">0</span>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// ================= VARS =================
-let balls = [], score=0, coins=0, level=1, lives=3;
+// ========== متغيرات ==========
+let balls=[], score=0, coins=0, level=1, lives=3;
 let gameRunning=false, isPaused=false, turbo=false;
 let hits=0, highScore = localStorage.getItem("legendHighScore") || 0;
-document.getElementById("highScore").textContent = highScore;
-let fireUsed = false;
-let controlMode = 'touch'; // mouse أو touch
-let selectedColors = [];
+document.getElementById("highScore").textContent=highScore;
+let fireUsed=false, controlMode='touch', selectedColors=[];
 
-// ================= CANVAS FULL SCREEN =================
-function resizeCanvas(){
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
-
-// ================= شاشة البداية =================
+// ========== شاشة البداية ==========
+document.getElementById("startBtn").onclick = ()=> {
+    document.getElementById("startScreen").classList.add("hidden");
+    document.getElementById("levelScreen").classList.remove("hidden");
+};
 document.getElementById("settingsBtn").onclick = ()=>{
     document.getElementById("startScreen").classList.add("hidden");
     document.getElementById("settingsScreen").classList.remove("hidden");
@@ -118,14 +113,10 @@ document.getElementById("colorBtnScreen").onclick = ()=>{
     document.getElementById("startScreen").classList.add("hidden");
     document.getElementById("colorScreen").classList.remove("hidden");
 };
-
-// رجوع
 document.getElementById("backBtn").onclick = ()=>{
     document.getElementById("settingsScreen").classList.add("hidden");
     document.getElementById("startScreen").classList.remove("hidden");
 };
-
-// التحكم
 document.getElementById("mouseControlBtn").onclick = ()=>{
     controlMode='mouse';
     document.getElementById("settingsConfirmBtn").classList.remove("hidden");
@@ -134,8 +125,6 @@ document.getElementById("touchControlBtn").onclick = ()=>{
     controlMode='touch';
     document.getElementById("settingsConfirmBtn").classList.remove("hidden");
 };
-
-// تأكيد التحكم ويظهر شاشة المستوى
 document.getElementById("settingsConfirmBtn").onclick = ()=>{
     document.getElementById("settingsScreen").classList.add("hidden");
     document.getElementById("levelScreen").classList.remove("hidden");
@@ -146,49 +135,43 @@ document.querySelectorAll(".colorBtn").forEach(btn=>{
     btn.onclick = ()=>{
         let color = btn.dataset.color;
         if(!selectedColors.includes(color)) selectedColors.push(color);
-        btn.style.border = "3px solid gold"; // يظهر انه مختار
+        btn.style.border="3px solid gold";
     };
 });
 document.getElementById("colorConfirmBtn").onclick = ()=>{
     if(selectedColors.length===0) alert("اختر على الأقل لون واحد!");
-    else {
+    else{
         document.getElementById("colorScreen").classList.add("hidden");
         document.getElementById("levelScreen").classList.remove("hidden");
     }
 };
 
-// ================= الدوال الأساسية =================
+// ========== إعداد الكانفس ==========
+function resizeCanvas(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// ========== وظائف اللعبة ==========
 function randomColor(){ 
-    if(selectedColors.length>0){
-        return selectedColors[Math.floor(Math.random()*selectedColors.length)];
-    } else {
-        let c=["red","green","blue","yellow","purple","orange"]; 
-        return c[Math.floor(Math.random()*c.length)];
-    }
+    if(selectedColors.length>0) return selectedColors[Math.floor(Math.random()*selectedColors.length)];
+    let c=["red","green","blue","yellow","purple","orange"]; 
+    return c[Math.floor(Math.random()*c.length)];
 }
 
 function createBall(explosive=false){
-    return {
-        x: Math.random()*(canvas.width-40)+20,
-        y: Math.random()*-200,
-        r: 25,
-        speed: 3,
-        color: explosive?"black":randomColor(),
-        explosive,
-        dx: Math.random()*2-1
-    };
+    return {x:Math.random()*(canvas.width-40)+20, y:Math.random()*-200, r:30,
+            speed:3, color:explosive?"black":randomColor(), explosive, flash:false, dx:Math.random()*2-1};
 }
 
 function initBalls(){
-    balls=[]; 
-    for(let i=0;i<3;i++) balls.push(createBall());
-    balls.push(createBall(true)); // كرة سوداء
+    balls=[]; for(let i=0;i<5;i++) balls.push(createBall()); balls.push(createBall(true));
 }
 
 function draw(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
     balls.forEach(b=>{
-        ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+        ctx.beginPath();
+        ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
         ctx.fillStyle=b.color; ctx.fill();
     });
 }
@@ -197,7 +180,7 @@ function update(){
     if(!gameRunning || isPaused) return;
     let maxSpeed=0;
     balls.forEach(b=>{
-        b.y += b.speed; b.x += b.dx*1.5;
+        b.y+=b.speed; b.x+=b.dx*1.5;
         if(b.speed>maxSpeed) maxSpeed=b.speed;
         if(b.x-b.r<0||b.x+b.r>canvas.width) b.dx*=-1;
         if(b.y-b.r>canvas.height){
@@ -205,44 +188,44 @@ function update(){
             b.y=Math.random()*-200; b.x=Math.random()*(canvas.width-40)+20;
         }
     });
-    document.getElementById("speed").textContent = maxSpeed.toFixed(1);
-    draw(); requestAnimationFrame(update);
+    document.getElementById("speed").textContent=maxSpeed.toFixed(1);
+    draw();
+    requestAnimationFrame(update);
 }
 
 function handleClick(x,y){
     balls.forEach(b=>{
         let dx=x-b.x, dy=y-b.y;
         if(dx*dx+dy*dy<=b.r*b.r){
-            if(b.explosive){
-                lives--; if(lives<0) lives=0;
-                document.getElementById("lives").textContent=lives;
-                if(lives<=0) gameOver();
-            } else {
-                score++; coins++; hits++;
-                document.getElementById("score").textContent=score;
-                document.getElementById("coins").textContent=coins;
-                b.y=Math.random()*-200; b.x=Math.random()*(canvas.width-40)+20;
-            }
+            if(b.explosive){ lives--; if(lives<0) lives=0; document.getElementById("lives").textContent=lives; if(lives<=0) gameOver(); }
+            else{ score++; coins++; hits++; document.getElementById("score").textContent=score; document.getElementById("coins").textContent=coins; b.y=Math.random()*-200; b.x=Math.random()*(canvas.width-40)+20; }
         }
     });
 }
 
-canvas.addEventListener('mousedown', e=>{
-    if(controlMode==='mouse') handleClick(e.clientX, e.clientY);
-});
+// ====== أحداث الماوس واللمس ======
+canvas.addEventListener('mousedown', e=>{ if(controlMode==='mouse') handleClick(e.clientX,e.clientY); });
 canvas.addEventListener('touchstart', e=>{
-    if(controlMode==='touch'){
-        e.preventDefault();
-        const touch = e.touches[0];
-        handleClick(touch.clientX, touch.clientY);
-    }
+    if(controlMode==='touch'){ e.preventDefault(); const touch=e.touches[0]; handleClick(touch.clientX,touch.clientY); }
 });
 
-// ====== مستوى اللعبة =====
+// ========== Game Over ==========
+function gameOver(){
+    gameRunning=false;
+    document.getElementById("finalScore").textContent="Score: "+score;
+    if(score>highScore){ highScore=score; localStorage.setItem("legendHighScore",highScore);}
+    document.getElementById("highScoreDisplay").textContent="High Score: "+highScore;
+    document.getElementById("gameOverScreen").classList.remove("hidden");
+}
+document.getElementById("restartBtn").onclick=()=>{
+    document.getElementById("gameOverScreen").classList.add("hidden");
+    document.getElementById("startScreen").classList.remove("hidden");
+};
+
+// ========== Level Select ==========
 document.querySelectorAll(".levelBtn").forEach(btn=>{
     btn.onclick=()=>{
-        level = btn.dataset.level==="easy"?1: btn.dataset.level==="normal"?2:3;
-        document.getElementById("level").textContent=level;
+        level=btn.dataset.level==="easy"?1:btn.dataset.level==="normal"?2:3;
         document.getElementById("levelScreen").classList.add("hidden");
         startGame();
     };
@@ -253,21 +236,42 @@ function startGame(){
     document.getElementById("score").textContent=score;
     document.getElementById("coins").textContent=coins;
     document.getElementById("lives").textContent=lives;
+    document.getElementById("level").textContent=level;
     initBalls();
     gameRunning=true; update();
 }
 
-function gameOver(){
-    gameRunning=false;
-    document.getElementById("finalScore").textContent="Score: "+score;
-    if(score>highScore){ highScore=score; localStorage.setItem("legendHighScore",highScore);}
-    document.getElementById("highScoreDisplay").textContent="High Score: "+highScore;
-    document.getElementById("gameOverScreen").classList.remove("hidden");
-}
-
-document.getElementById("restartBtn").onclick=()=>{
-    document.getElementById("gameOverScreen").classList.add("hidden");
-    document.getElementById("startScreen").classList.remove("hidden");
+// ========= أزرار إضافية ==========
+document.getElementById("pauseBtn").onclick=()=>{
+    isPaused=!isPaused;
+    document.getElementById("pauseBtn").textContent=isPaused?"▶ تشغيل":"⏸ إيقاف";
+    if(!isPaused) update();
+};
+document.getElementById("extraBtn").onclick=()=>{
+    balls.forEach(b=>{ if(!b.explosive) b.color=randomColor(); });
+    alert("✨ Extra Ball Colors Activated!");
+};
+document.getElementById("turboBtn").onclick=()=>{
+    balls.forEach(b=> b.speed+=5);
+    setTimeout(()=>{ balls.forEach(b=> b.speed-=5); },2000);
+};
+document.getElementById("buySlow35").onclick=()=>{
+    if(coins>=35){ coins-=35; document.getElementById("coins").textContent=coins; balls.forEach(b=>b.speed=1); setTimeout(()=>{ balls.forEach(b=>b.speed=3); },3000); }
+    else alert("Not enough coins!");
+};
+document.getElementById("firePower").onclick=()=>{
+    if(fireUsed){ alert("🔥 Fire Strike already used!"); return; }
+    if(coins>=50){
+        coins-=50; document.getElementById("coins").textContent=coins; fireUsed=true;
+        let fireDuration=5000;
+        let fireInterval=setInterval(()=>{
+            balls.forEach(b=>{
+                if(!b.explosive){ score++; coins++; document.getElementById("score").textContent=score; document.getElementById("coins").textContent=coins; b.y=Math.random()*-200; b.x=Math.random()*(canvas.width-40)+20; }
+            });
+        },100);
+        setTimeout(()=> clearInterval(fireInterval), fireDuration);
+        alert("🔥 Fire Strike Activated for 5s!");
+    } else alert("Not enough coins!");
 };
 
 </script>
