@@ -6,8 +6,7 @@
 <style>
 body { margin:0; padding:0; font-family:Arial; background:#87CEEB; text-align:center; }
 canvas { display:block; margin:0; border:3px solid black; }
-/* شاشة البداية والإعدادات */
-#startScreen, #gameOverScreen, #settingsScreen {
+#startScreen, #gameOverScreen, #settingsScreen, #colorScreen, #levelScreen {
     position:fixed; top:0; left:0; width:100%; height:100%;
     background:rgba(0,0,0,0.8); color:white; display:flex;
     flex-direction:column; justify-content:center; align-items:center;
@@ -17,6 +16,7 @@ canvas { display:block; margin:0; border:3px solid black; }
 button { font-size:18px; padding:8px 15px; margin:3px; cursor:pointer; }
 #scoreBox { font-size:20px; background:white; padding:5px; border:2px solid black; }
 #shop { background:white; border:2px solid black; padding:5px; font-size:18px; }
+.colorBtn { width:50px; height:50px; margin:5px; border:none; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -24,8 +24,8 @@ button { font-size:18px; padding:8px 15px; margin:3px; cursor:pointer; }
 <!-- شاشة البداية -->
 <div id="startScreen">
     <div>🔥 LEGENDARY MODE 🔥</div>
-    <button id="startBtn">ابدأ</button>
     <button id="settingsBtn">إعدادات</button>
+    <button id="colorBtnScreen">سلة شراء الألوان</button>
 </div>
 
 <!-- شاشة الإعدادات -->
@@ -33,7 +33,29 @@ button { font-size:18px; padding:8px 15px; margin:3px; cursor:pointer; }
     <div>⚙️ إعدادات</div>
     <button id="mouseControlBtn">تحكم بالماوس</button>
     <button id="touchControlBtn">تحكم باللمس</button>
+    <button id="settingsConfirmBtn" class="hidden">تأكيد التحكم</button>
     <button id="backBtn">رجوع</button>
+</div>
+
+<!-- شاشة اختيار الألوان -->
+<div id="colorScreen" class="hidden">
+    <div>🛒 اختر ألوان الكرات</div>
+    <div id="colorOptions">
+        <button class="colorBtn" style="background:green;" data-color="green"></button>
+        <button class="colorBtn" style="background:red;" data-color="red"></button>
+        <button class="colorBtn" style="background:black;" data-color="black"></button>
+        <button class="colorBtn" style="background:white;" data-color="white"></button>
+        <button class="colorBtn" style="background:purple;" data-color="purple"></button>
+    </div>
+    <button id="colorConfirmBtn">تأكيد</button>
+</div>
+
+<!-- شاشة اختيار المستوى -->
+<div id="levelScreen" class="hidden">
+    <div>اختر المستوى</div>
+    <button class="levelBtn" data-level="easy">سهل</button>
+    <button class="levelBtn" data-level="normal">عادي</button>
+    <button class="levelBtn" data-level="hard">صعب</button>
 </div>
 
 <div id="gameOverScreen" class="hidden">
@@ -69,16 +91,15 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
 // ================= VARS =================
-let balls = [], score=0, coins=0, level=1;
-let lives=3, gameRunning=false, isPaused=false, turbo=false;
+let balls = [], score=0, coins=0, level=1, lives=3;
+let gameRunning=false, isPaused=false, turbo=false;
 let hits=0, highScore = localStorage.getItem("legendHighScore") || 0;
 document.getElementById("highScore").textContent = highScore;
 let fireUsed = false;
+let controlMode = 'touch'; // mouse أو touch
+let selectedColors = [];
 
-// التحكم: 'mouse' أو 'touch'
-let controlMode = 'touch';
-
-// ================= ضبط حجم الكانفاس =================
+// ================= CANVAS FULL SCREEN =================
 function resizeCanvas(){
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -87,26 +108,81 @@ window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
 // ================= شاشة البداية =================
-document.getElementById("startBtn").onclick = ()=>{
-    document.getElementById("startScreen").classList.add("hidden");
-    startGame();
-};
 document.getElementById("settingsBtn").onclick = ()=>{
     document.getElementById("startScreen").classList.add("hidden");
     document.getElementById("settingsScreen").classList.remove("hidden");
 };
+document.getElementById("colorBtnScreen").onclick = ()=>{
+    document.getElementById("startScreen").classList.add("hidden");
+    document.getElementById("colorScreen").classList.remove("hidden");
+};
+
+// رجوع
 document.getElementById("backBtn").onclick = ()=>{
     document.getElementById("settingsScreen").classList.add("hidden");
     document.getElementById("startScreen").classList.remove("hidden");
 };
-document.getElementById("mouseControlBtn").onclick = ()=>{ controlMode='mouse'; alert("تم تفعيل التحكم بالماوس"); };
-document.getElementById("touchControlBtn").onclick = ()=>{ controlMode='touch'; alert("تم تفعيل التحكم باللمس"); };
 
-// ================= TOUCH EVENTS =================
+// التحكم
+document.getElementById("mouseControlBtn").onclick = ()=>{
+    controlMode='mouse';
+    document.getElementById("settingsConfirmBtn").classList.remove("hidden");
+};
+document.getElementById("touchControlBtn").onclick = ()=>{
+    controlMode='touch';
+    document.getElementById("settingsConfirmBtn").classList.remove("hidden");
+};
+
+// تأكيد التحكم ويظهر شاشة المستوى
+document.getElementById("settingsConfirmBtn").onclick = ()=>{
+    document.getElementById("settingsScreen").classList.add("hidden");
+    document.getElementById("levelScreen").classList.remove("hidden");
+};
+
+// اختيار الألوان
+document.querySelectorAll(".colorBtn").forEach(btn=>{
+    btn.onclick = ()=>{
+        let color = btn.dataset.color;
+        if(!selectedColors.includes(color)) selectedColors.push(color);
+        btn.style.border = "3px solid gold"; // يظهر انه مختار
+    };
+});
+document.getElementById("colorConfirmBtn").onclick = ()=>{
+    if(selectedColors.length===0) alert("اختر على الأقل لون واحد!");
+    else {
+        document.getElementById("colorScreen").classList.add("hidden");
+        document.getElementById("levelScreen").classList.remove("hidden");
+    }
+};
+
+// ================= الكود الأصلي =================
+// هنا تقدر تلصق باقي كود اللعبة بدون حذف أي شيء: createBall, draw, update, click, shop, turbo, fireStrike...
+// فقط تأكد إن createBall يستخدم selectedColors بدل randomColor لو فيه ألوان محددة
+
+function randomColor(){ 
+    if(selectedColors.length>0){
+        return selectedColors[Math.floor(Math.random()*selectedColors.length)];
+    } else {
+        let c=["red","green","blue","yellow","purple","orange"]; 
+        return c[Math.floor(Math.random()*c.length)];
+    }
+}
+
+function startGame(){
+    score=0; coins=0; level=1; lives=3; hits=0;
+    document.getElementById("score").textContent=score;
+    document.getElementById("coins").textContent=coins;
+    document.getElementById("level").textContent=level;
+    document.getElementById("lives").textContent=lives;
+    initBalls();
+    gameRunning=true; update();
+}
+
+// ================= TOUCH & MOUSE =================
 function handleClick(x,y){
     balls.forEach(b=>{
         let dx=x-b.x, dy=y-b.y;
-        if(dx*dx+dy*dy <= b.r*b.r){
+        if(dx*dx+dy*dy<=b.r*b.r){
             if(b.explosive){
                 lives--; if(lives<0) lives=0;
                 document.getElementById("lives").textContent=lives;
@@ -115,11 +191,12 @@ function handleClick(x,y){
                 score++; coins++; hits++;
                 document.getElementById("score").textContent=score;
                 document.getElementById("coins").textContent=coins;
-                b.y=Math.random()*-200; b.x=Math.random()* (canvas.width-40)+20;
+                b.y=Math.random()*-200; b.x=Math.random()*(canvas.width-40)+20;
             }
         }
     });
 }
+
 canvas.addEventListener('mousedown', e=>{
     if(controlMode==='mouse') handleClick(e.clientX, e.clientY);
 });
@@ -130,9 +207,6 @@ canvas.addEventListener('touchstart', e=>{
         handleClick(touch.clientX, touch.clientY);
     }
 });
-
-// ================= باقي الكود بدون حذف =================
-// ... هنا تقدر تلصق كل الكود الموجود فوق بدون أي حذف، فقط تغييرنا الكانفاس واللمس وشاشة البداية والإعدادات
 
 </script>
 </body>
