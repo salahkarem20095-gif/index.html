@@ -1,169 +1,187 @@
 <!DOCTYPE html>
-<html>
+<html lang="ar">
 <head>
 <meta charset="UTF-8">
 <title>Legendary Tap Balls</title>
 <style>
-body { margin:0; overflow:hidden; background:#222; font-family:Arial; }
-canvas { display:block; background:black; }
-#scoreBox {
-    position: fixed;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    color:white;
-    font-size: 20px;
-    background: rgba(0,0,0,0.5);
-    padding:5px 10px;
-    border-radius:5px;
-    z-index: 10;
-}
+  body, html {
+    margin:0; padding:0; height:100%; width:100%;
+    font-family: Arial; background:#222; color:white; overflow:hidden;
+  }
+  #menu, #levelMenu, #settingsMenu, #shopMenu {
+    position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);
+    text-align:center; display:flex; flex-direction:column; gap:15px;
+  }
+  button {
+    font-size:20px; padding:10px 20px; cursor:pointer; border:none; border-radius:8px;
+    background:gold; color:#222;
+  }
+  canvas { background:black; display:block; margin:auto; }
+  .hidden { display:none; }
 </style>
 </head>
 <body>
 
-<div id="scoreBox">
-Score: <span id="score">0</span> |
-Coins: <span id="coins">0</span> |
-Lives: <span id="lives">3</span>
+<!-- شاشة البداية -->
+<div id="menu">
+  <button id="startBtn">ابدأ</button>
+  <button id="soundBtn">الصوت</button>
+  <button id="shopBtn">سلة شراء</button>
+  <button id="settingsBtn">إعدادات</button>
 </div>
 
-<canvas id="gameCanvas"></canvas>
+<!-- اختيار المستوى -->
+<div id="levelMenu" class="hidden">
+  <button class="levelBtn" data-speed="2">سهل</button>
+  <button class="levelBtn" data-speed="4">عادي</button>
+  <button class="levelBtn" data-speed="6">صعب</button>
+</div>
+
+<!-- إعدادات -->
+<div id="settingsMenu" class="hidden">
+  <button id="controlMobileBtn">تحكم الموبايل</button>
+  <button id="controlPCBtn">تحكم الكمبيوتر</button>
+</div>
+
+<!-- سلة شراء -->
+<div id="shopMenu" class="hidden">
+  <button class="ballColorBtn" data-color="green">أخضر</button>
+  <button class="ballColorBtn" data-color="red">أحمر</button>
+  <button class="ballColorBtn" data-color="black">أسود</button>
+  <button class="ballColorBtn" data-color="white">أبيض</button>
+  <button class="ballColorBtn" data-color="purple">بنفسجي</button>
+</div>
+
+<!-- الكانفاس -->
+<canvas id="gameCanvas" class="hidden"></canvas>
 
 <script>
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+const menu = document.getElementById('menu');
+const levelMenu = document.getElementById('levelMenu');
+const settingsMenu = document.getElementById('settingsMenu');
+const shopMenu = document.getElementById('shopMenu');
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
 
-// 🌐 جعل الكانفس يملأ الشاشة
-function resizeCanvas(){
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+let balls = [];
+let ballColor = 'green';
+let ballSpeed = 2;
+let score = 0;
+let lives = 3;
+let control = 'mobile'; // أو 'pc'
+
+// تغيير حجم الكانفاس على حسب الشاشة
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 }
 window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
 
-// ================= متغيرات اللعبة =================
-let balls = [], score=0, coins=0, lives=3;
-let initialBallCount = 5;
+// ** شاشة البداية **
+document.getElementById('startBtn').onclick = () => { 
+  menu.classList.add('hidden');
+  levelMenu.classList.remove('hidden');
+};
+document.getElementById('soundBtn').onclick = () => alert('هنا تضبط الصوت (مؤقت)');
+document.getElementById('settingsBtn').onclick = () => {
+  menu.classList.add('hidden');
+  settingsMenu.classList.remove('hidden');
+};
+document.getElementById('shopBtn').onclick = () => {
+  menu.classList.add('hidden');
+  shopMenu.classList.remove('hidden');
+};
 
-// ================= أصوات بسيطة =================
-function playSound(freq,duration=0.1){
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.frequency.value=freq;
-    gain.gain.value=0.2;
-    osc.start();
-    osc.stop(audioCtx.currentTime + duration);
-}
-function soundClick(){ playSound(700,0.05); }
-function soundBoom(){ playSound(60,0.5); }
+// التحكم
+document.getElementById('controlMobileBtn').onclick = () => { control='mobile'; alert('تم اختيار تحكم الموبايل'); };
+document.getElementById('controlPCBtn').onclick = () => { control='pc'; alert('تم اختيار تحكم الكمبيوتر'); };
 
-// ================= إنشاء الكرات =================
-function randomColor(){ let c=["red","green","blue","yellow","purple","orange"]; return c[Math.floor(Math.random()*c.length)]; }
-
-function createBall(explosive=false){
-    return {
-        x: Math.random() * (canvas.width - 40) + 20,
-        y: Math.random() * -200,
-        r: 18,
-        speed: 3,
-        color: explosive ? "black" : randomColor(),
-        explosive,
-        flash: false,
-        dx: Math.random()*2-1,
-        alive: true
-    };
-}
-
-function initBalls(){
-    balls = [];
-    for(let i=0;i<initialBallCount;i++) balls.push(createBall());
-    balls.push(createBall(true)); // كرة متفجرة
-}
-
-// 🖌️ وميض الكرة المتفجرة
-setInterval(()=>{
-    balls.forEach(b=>{
-        if(b.explosive){
-            b.flash = !b.flash;
-            b.color = b.flash ? "red" : "black";
-        }
-    });
-},1000);
-
-// ====== رسم الكرات ======
-function draw(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    balls.forEach(b=>{
-        ctx.beginPath();
-        ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
-        ctx.fillStyle = b.color;
-        ctx.fill();
-    });
-}
-
-// ====== تحديث الحركة ======
-function update(){
-    balls.forEach(b=>{
-        if(!b.alive) return;
-        b.y += b.speed;
-        b.x += b.dx * 1.5;
-
-        if(b.x - b.r < 0 || b.x + b.r > canvas.width) b.dx *= -1;
-
-        if(b.y - b.r > canvas.height){
-            if(!b.explosive) score--;
-            b.y = Math.random() * -200;
-            b.x = Math.random() * (canvas.width - 40) + 20;
-        }
-    });
-    draw();
-    requestAnimationFrame(update);
-}
-
-// ====== اللمس والماوس ======
-canvas.addEventListener("pointerdown", e=>{
-    const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-
-    balls.forEach(b=>{
-        if(!b.alive) return;
-        let dx = mx - b.x;
-        let dy = my - b.y;
-        if(dx*dx + dy*dy <= b.r*b.r){
-            if(b.explosive){
-                soundBoom();
-                lives--;
-                if(lives<0) lives=0;
-                document.getElementById("lives").textContent = lives;
-                if(lives<=0) alert("Game Over!"), resetGame();
-            } else {
-                soundClick();
-                score++; coins++;
-                document.getElementById("score").textContent = score;
-                document.getElementById("coins").textContent = coins;
-                b.alive = false; // الكورة تختفي
-            }
-        }
-    });
+// اختيار لون الكرة
+document.querySelectorAll('.ballColorBtn').forEach(btn => {
+  btn.onclick = () => {
+    ballColor = btn.getAttribute('data-color');
+    alert('تم اختيار اللون: ' + ballColor);
+  };
 });
 
-// إعادة اللعبة
-function resetGame(){
-    score=0; coins=0; lives=3;
-    document.getElementById("score").textContent = score;
-    document.getElementById("coins").textContent = coins;
-    document.getElementById("lives").textContent = lives;
-    initBalls();
+// اختيار مستوى
+document.querySelectorAll('.levelBtn').forEach(btn => {
+  btn.onclick = () => {
+    ballSpeed = Number(btn.getAttribute('data-speed'));
+    levelMenu.classList.add('hidden');
+    startGame();
+  };
+});
+
+// ** اللعبة **
+function startGame() {
+  canvas.classList.remove('hidden');
+  resizeCanvas();
+  balls = [];
+  score = 0;
+  lives = 3;
+
+  // إنشاء كرات أولية
+  for(let i=0;i<5;i++){
+    balls.push({
+      x: Math.random()*canvas.width,
+      y: Math.random()*canvas.height,
+      r: 30,
+      dx: (Math.random()-0.5)*ballSpeed,
+      dy: (Math.random()-0.5)*ballSpeed,
+    });
+  }
+
+  canvas.addEventListener(control==='mobile' ? 'touchstart' : 'mousedown', tapBall);
+
+  requestAnimationFrame(gameLoop);
 }
 
-// ✅ بدء اللعبة
-initBalls();
-update();
+// الضرب على الكرة
+function tapBall(e){
+  let rect = canvas.getBoundingClientRect();
+  let x = control==='mobile' ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
+  let y = control==='mobile' ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
 
+  balls.forEach((b,i)=>{
+    let dist = Math.hypot(b.x-x,b.y-y);
+    if(dist<b.r){
+      balls.splice(i,1);
+      score++;
+      balls.push({
+        x: Math.random()*canvas.width,
+        y: Math.random()*canvas.height,
+        r:30,
+        dx: (Math.random()-0.5)*ballSpeed,
+        dy: (Math.random()-0.5)*ballSpeed,
+      });
+    }
+  });
+}
+
+// تحديث وعرض الكرات
+function gameLoop(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // الكرات
+  balls.forEach(b=>{
+    b.x+=b.dx; b.y+=b.dy;
+    if(b.x<b.r||b.x>canvas.width-b.r) b.dx*=-1;
+    if(b.y<b.r||b.y>canvas.height-b.r) b.dy*=-1;
+    ctx.fillStyle=ballColor;
+    ctx.beginPath();
+    ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+    ctx.fill();
+  });
+
+  // عرض النتيجة
+  ctx.fillStyle='white';
+  ctx.font='20px Arial';
+  ctx.fillText('Score: '+score+' | Lives: '+lives, 10, 30);
+
+  requestAnimationFrame(gameLoop);
+}
 </script>
+
 </body>
 </html>
