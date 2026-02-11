@@ -58,6 +58,7 @@ button { font-size:18px; padding:8px 15px; margin:3px; cursor:pointer; }
     <button class="levelBtn" data-level="hard">صعب</button>
 </div>
 
+<!-- شاشة Game Over -->
 <div id="gameOverScreen" class="hidden">
     <div>Game Over</div>
     <div id="finalScore"></div>
@@ -65,6 +66,7 @@ button { font-size:18px; padding:8px 15px; margin:3px; cursor:pointer; }
     <button id="restartBtn">Restart</button>
 </div>
 
+<!-- لوحة المعلومات -->
 <div id="scoreBox">
 Score: <span id="score">0</span> |
 Coins: <span id="coins">0</span> |
@@ -90,7 +92,7 @@ High Score: <span id="highScore">0</span>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// =============== VARS =================
+// ================= VARS =================
 let balls = [], score=0, coins=0, level=1, lives=3;
 let gameRunning=false, isPaused=false, turbo=false;
 let hits=0, highScore = localStorage.getItem("legendHighScore") || 0;
@@ -98,7 +100,6 @@ document.getElementById("highScore").textContent = highScore;
 let fireUsed = false;
 let controlMode = 'touch'; // mouse أو touch
 let selectedColors = [];
-let animationId;
 
 // ================= CANVAS FULL SCREEN =================
 function resizeCanvas(){
@@ -156,42 +157,42 @@ document.getElementById("colorConfirmBtn").onclick = ()=>{
     }
 };
 
-// =============== BALLS =================
+// ================= الدوال الأساسية =================
+function randomColor(){ 
+    if(selectedColors.length>0){
+        return selectedColors[Math.floor(Math.random()*selectedColors.length)];
+    } else {
+        let c=["red","green","blue","yellow","purple","orange"]; 
+        return c[Math.floor(Math.random()*c.length)];
+    }
+}
+
 function createBall(explosive=false){
     return {
         x: Math.random()*(canvas.width-40)+20,
         y: Math.random()*-200,
-        r:30, // الكرات أكبر على الهاتف
-        speed:3,
-        color: explosive ? "black" : randomColor(),
+        r: 25,
+        speed: 3,
+        color: explosive?"black":randomColor(),
         explosive,
-        flash:false,
         dx: Math.random()*2-1
     };
 }
 
 function initBalls(){
-    balls=[];
+    balls=[]; 
     for(let i=0;i<3;i++) balls.push(createBall());
-    balls.push(createBall(true));
+    balls.push(createBall(true)); // كرة سوداء
 }
 
-// ====== FLASH EXPLOSIVE =====
-setInterval(()=>{ 
-    balls.forEach(b=>{
-        if(b.explosive){ b.flash=!b.flash; b.color=b.flash?"red":"black"; }
-    }); 
-},1000);
-
-// ====== DRAW =====
 function draw(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
     balls.forEach(b=>{
-        ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fillStyle=b.color; ctx.fill();
+        ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+        ctx.fillStyle=b.color; ctx.fill();
     });
 }
 
-// ====== UPDATE =====
 function update(){
     if(!gameRunning || isPaused) return;
     let maxSpeed=0;
@@ -205,89 +206,69 @@ function update(){
         }
     });
     document.getElementById("speed").textContent = maxSpeed.toFixed(1);
-    draw(); 
-    animationId = requestAnimationFrame(update);
+    draw(); requestAnimationFrame(update);
 }
 
-// ====== CLICK =====
 function handleClick(x,y){
     balls.forEach(b=>{
         let dx=x-b.x, dy=y-b.y;
         if(dx*dx+dy*dy<=b.r*b.r){
             if(b.explosive){
-                soundBoom(); lives--; if(lives<0) lives=0;
+                lives--; if(lives<0) lives=0;
                 document.getElementById("lives").textContent=lives;
                 if(lives<=0) gameOver();
             } else {
-                soundClick(); score++; coins++; hits++;
+                score++; coins++; hits++;
                 document.getElementById("score").textContent=score;
                 document.getElementById("coins").textContent=coins;
-                if(hits>=13 && lives<3){ hits=0; lives++; document.getElementById("lives").textContent=lives; alert("❤️ Extra Life!");}
                 b.y=Math.random()*-200; b.x=Math.random()*(canvas.width-40)+20;
             }
         }
     });
 }
 
-canvas.addEventListener('mousedown', e=>{ if(controlMode==='mouse') handleClick(e.clientX, e.clientY); });
-canvas.addEventListener('touchstart', e=>{ 
-    if(controlMode==='touch'){ 
-        e.preventDefault(); 
-        handleClick(e.touches[0].clientX,e.touches[0].clientY); 
-    } 
+canvas.addEventListener('mousedown', e=>{
+    if(controlMode==='mouse') handleClick(e.clientX, e.clientY);
+});
+canvas.addEventListener('touchstart', e=>{
+    if(controlMode==='touch'){
+        e.preventDefault();
+        const touch = e.touches[0];
+        handleClick(touch.clientX, touch.clientY);
+    }
 });
 
-// ====== LEVEL SELECT =====
+// ====== مستوى اللعبة =====
 document.querySelectorAll(".levelBtn").forEach(btn=>{
     btn.onclick=()=>{
-        soundButton();
-        fireUsed = false; 
-        let count = btn.dataset.level==="easy"?2: btn.dataset.level==="normal"?4:8;
-        score=0; coins=0; level=1; lives=3; hits=0;
-        document.getElementById("score").textContent=0;
-        document.getElementById("coins").textContent=0;
-        document.getElementById("level").textContent=1;
-        document.getElementById("lives").textContent=3;
-        initBalls();
+        level = btn.dataset.level==="easy"?1: btn.dataset.level==="normal"?2:3;
+        document.getElementById("level").textContent=level;
         document.getElementById("levelScreen").classList.add("hidden");
-        gameRunning=true; update();
+        startGame();
     };
 });
 
-// ====== GAME OVER =====
+function startGame(){
+    score=0; coins=0; lives=3; hits=0;
+    document.getElementById("score").textContent=score;
+    document.getElementById("coins").textContent=coins;
+    document.getElementById("lives").textContent=lives;
+    initBalls();
+    gameRunning=true; update();
+}
+
 function gameOver(){
     gameRunning=false;
-    cancelAnimationFrame(animationId);
     document.getElementById("finalScore").textContent="Score: "+score;
-    if(score>highScore){ highScore=score; localStorage.setItem("legendHighScore",score);}
-    document.getElementById("highScoreDisplay").textContent="High Score: "+Math.max(score,highScore);
+    if(score>highScore){ highScore=score; localStorage.setItem("legendHighScore",highScore);}
+    document.getElementById("highScoreDisplay").textContent="High Score: "+highScore;
     document.getElementById("gameOverScreen").classList.remove("hidden");
 }
+
 document.getElementById("restartBtn").onclick=()=>{
     document.getElementById("gameOverScreen").classList.add("hidden");
     document.getElementById("startScreen").classList.remove("hidden");
 };
-
-// ====== PAUSE =====
-document.getElementById("pauseBtn").onclick = togglePause;
-function togglePause(){ isPaused=!isPaused; document.getElementById("pauseBtn").textContent=isPaused?"▶ تشغيل":"⏸ إيقاف"; if(!isPaused) update();}
-
-// ================= SOUNDS =================
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function playSound(freq,duration=0.1){ const osc=audioCtx.createOscillator(); const gain=audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.type="square"; osc.frequency.value=freq; gain.gain.value=0.2; osc.start(); osc.stop(audioCtx.currentTime+duration);}
-function soundClick(){ playSound(700,0.05);}
-function soundButton(){ playSound(300,0.1);}
-function soundBoom(){ playSound(60,0.5);}
-
-// ====== BALL COLORS =========
-function randomColor(){ 
-    if(selectedColors.length>0){ return selectedColors[Math.floor(Math.random()*selectedColors.length)];}
-    let c=["red","green","blue","yellow","purple","orange"];
-    return c[Math.floor(Math.random()*c.length)];
-}
-
-// باقي ميزات المتجر وTurbo وExtra Fire Strike كما في كودك القديم
-// تقدر تضيفها هنا مباشرة بعد هذا التعليق
 
 </script>
 </body>
