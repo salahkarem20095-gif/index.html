@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Legendary Falling Balls Game</title>
+<style>
+body { text-align:center; background:#87CEEB; font-family:Arial; }
+canvas { background:white; border:3px solid black; display:block; margin:10px auto; }
+button { font-size:18px; padding:8px 15px; margin:3px; cursor:pointer; }
+#startScreen, #gameOverScreen {
+    position:fixed; top:0; left:0; width:100%; height:100%;
+    background:rgba(0,0,0,0.8); color:white; display:flex; flex-direction:column;
+    justify-content:center; align-items:center; font-size:40px; z-index:10;
+}
+#scoreBox { font-size:20px; background:white; padding:5px; border:2px solid black; }
+#shop { background:white; border:2px solid black; padding:5px; font-size:18px; }
+</style>
+</head>
+<body>
+
+<div id="startScreen">
+    <div>🔥 LEGENDARY MODE 🔥</div>
+    <button class="levelBtn" data-level="easy">Easy</button>
+    <button class="levelBtn" data-level="normal">Normal</button>
+    <button class="levelBtn" data-level="hard">Hard</button>
+</div>
+
+<div id="gameOverScreen" style="display:none;">
+    <div>Game Over</div>
+    <div id="finalScore"></div>
+    <div id="highScoreDisplay"></div>
+    <button id="restartBtn">Restart</button>
+</div>
+
+<div id="scoreBox">
+Score: <span id="score">0</span> |
+Coins: <span id="coins">0</span> |
+Lives: <span id="lives">3</span> |
+Level: <span id="level">1</span> |
+Speed: <span id="speed">0</span> |
+High Score: <span id="highScore">0</span>
+</div>
+
+<button id="pauseBtn">⏸ إيقاف</button>
+<button id="turboBtn">🔥 Turbo Mode</button>
+<button id="extraBtn">✨ Extra</button>
+
+<div id="shop">
+<h3>🛒 Shop</h3>
+<button id="buySlow35">🐢 Slow Time (35 Coins)</button>
+<button id="firePower">🔥 Fire Strike (50 Coins)</button>
+</div>
+
+<canvas id="gameCanvas" width="600" height="400"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+// ================= VARS =================
+let balls = [], score=0, coins=0, level=1;
+let lives=3, gameRunning=false, isPaused=false, turbo=false;
+let hits=0, highScore = localStorage.getItem("legendHighScore") || 0;
+document.getElementById("highScore").textContent = highScore;
+
+// Fire Strike usage tracker
+let fireUsed = false;
+
+// ================= SOUNDS =================
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(freq,duration=0.1){ const osc=audioCtx.createOscillator(); const gain=audioCtx.createGain();
+osc.connect(gain); gain.connect(audioCtx.destination); osc.type="square"; osc.frequency.value=freq;
+gain.gain.value=0.2; osc.start(); osc.stop(audioCtx.currentTime+duration);}
+function soundClick(){ playSound(700,0.05);}
+function soundButton(){ playSound(300,0.1);}
+function soundBoom(){ playSound(60,0.5);}
+
+// ================= BALLS =================
+function randomColor(){ let c=["red","green","blue","yellow","purple","orange"]; return c[Math.floor(Math.random()*c.length)];}
+function createBall(explosive=false){ return {x: Math.random()*560+20, y:Math.random()*-200, r:18,
+speed: 3, color: explosive ? "black":randomColor(), explosive, flash:false, dx:Math.random()*2-1};}
+function initBalls(){ balls=[]; for(let i=0;i<3;i++) balls.push(createBall()); balls.push(createBall(true));}
+
+// ====== FLASH EXPLOSIVE =====
+setInterval(()=>{ balls.forEach(b=>{ if(b.explosive){ b.flash=!b.flash; b.color=b.flash?"red":"black"; } }); },1000);
+
+// ====== DRAW =====
+function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    balls.forEach(b=>{
+        ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fillStyle=b.color; ctx.fill();
+    });
+}
+
+// ====== UPDATE =====
+function update(){
+    if(!gameRunning || isPaused) return;
+    let maxSpeed=0;
+    balls.forEach(b=>{
+        b.y += b.speed; b.x += b.dx*1.5;
+        if(b.speed>maxSpeed) maxSpeed=b.speed;
+        if(b.x-b.r<0||b.x+b.r>canvas.width) b.dx*=-1;
+        if(b.y-b.r>canvas.height){
+            if(!b.explosive){ score--; document.getElementById("score").textContent=score; }
+            b.y=Math.random()*-200; b.x=Math.random()*560+20;
+        }
+    });
+    document.getElementById("speed").textContent = maxSpeed.toFixed(1);
+    draw(); requestAnimationFrame(update);
+}
+
+// ====== CLICK =====
+canvas.onclick = e=>{
+    if(!gameRunning || isPaused) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    balls.forEach(b=>{
+        let dx=mx-b.x, dy=my-b.y;
+        if(dx*dx+dy*dy<=b.r*b.r){
+            if(b.explosive){
+                soundBoom(); lives--; if(lives<0) lives=0;
+                document.getElementById("lives").textContent=lives;
+                if(lives<=0) gameOver();
+            } else {
+                soundClick(); score++; coins++; hits++;
+                document.getElementById("score").textContent=score;
+                document.getElementById("coins").textContent=coins;
+                if(hits>=13 && lives<3){ hits=0; lives++; document.getElementById("lives").textContent=lives; alert("❤️ Extra Life!");}
+                b.y=Math.random()*-200; b.x=Math.random()*560+20;
+            }
+        }
+    });
+};
+
+// ====== LEVEL SELECT =====
+document.querySelectorAll(".levelBtn").forEach(btn=>{
+    btn.onclick=()=>{
+        soundButton();
+        fireUsed = false; // Reset Fire Strike for new game
+        if(btn.dataset.level==="easy") initialBallCount=2;
+        if(btn.dataset.level==="normal") initialBallCount=4;
+        if(btn.dataset.level==="hard") initialBallCount=8;
+        score=0; coins=0; level=1; lives=3; hits=0;
+        document.getElementById("score").textContent=0;
+        document.getElementById("coins").textContent=0;
+        document.getElementById("level").textContent=1;
+        document.getElementById("lives").textContent=3;
+        initBalls();
+        document.getElementById("startScreen").style.display="none";
+        gameRunning=true; update();
+    };
+});
+
+// ====== GAME OVER =====
+function gameOver(){
+    gameRunning=false;
+    document.getElementById("finalScore").textContent="Score: "+score;
+    if(score>highScore){ highScore=score; localStorage.setItem("legendHighScore",highScore);}
+    document.getElementById("highScoreDisplay").textContent="High Score: "+highScore;
+    document.getElementById("gameOverScreen").style.display="flex";
+}
+document.getElementById("restartBtn").onclick=()=>{ document.getElementById("gameOverScreen").style.display="none"; document.getElementById("startScreen").style.display="flex";}
+
+// ====== PAUSE =====
+document.getElementById("pauseBtn").onclick = togglePause;
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ togglePause(); }});
+function togglePause(){ isPaused=!isPaused; document.getElementById("pauseBtn").textContent=isPaused?"▶ تشغيل":"⏸ إيقاف"; if(!isPaused) update();}
+
+// ====== EXTRA BUTTON =====
+document.getElementById("extraBtn").onclick=()=>{
+    balls.forEach(b=>{ if(!b.explosive) b.color=randomColor(); });
+    alert("✨ Extra Ball Colors Activated!");
+};
+
+// ====== TURBO MODE (automatic 2s every 30s) =====
+setInterval(()=>{
+    if(gameRunning){
+        balls.forEach(b=> b.speed+=5);
+        setTimeout(()=>{ balls.forEach(b=> b.speed-=5); },2000);
+    }
+},30000);
+
+// ====== SLOW TIME BUTTON 35 coins =====
+document.getElementById("buySlow35").onclick=()=>{
+    if(coins>=35){
+        coins-=35; document.getElementById("coins").textContent=coins;
+        balls.forEach(b=> b.speed=1);
+        setTimeout(()=>{ balls.forEach(b=> b.speed=3); },3000); // 3 ثواني فقط
+    } else alert("Not enough coins!");
+};
+
+// ====== FIRE STRIKE 50 coins (Once per game) =====
+document.getElementById("firePower").onclick = ()=>{
+    if(fireUsed){
+        alert("🔥 Fire Strike already used!");
+        return;
+    }
+    if(coins>=50){
+        coins-=50; document.getElementById("coins").textContent=coins;
+        fireUsed = true; // متغير الاستخدام
+        let fireDuration = 5000; // 5 ثواني
+        let fireInterval = setInterval(()=>{
+            balls.forEach(b=>{
+                if(!b.explosive){
+                    score++; coins++;
+                    document.getElementById("score").textContent=score;
+                    document.getElementById("coins").textContent=coins;
+                    b.y=Math.random()*-200; b.x=Math.random()*560+20;
+                }
+            });
+        },100); // تضرب الكرات كل 0.1 ثانية
+        setTimeout(()=> clearInterval(fireInterval), fireDuration);
+        alert("🔥 Fire Strike Activated for 5s!");
+    } else alert("Not enough coins!");
+};
+
+update();
+</script>
+</body>
+</html>
