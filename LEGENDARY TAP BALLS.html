@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Legendary Tap Balls</title>
+<style>
+body{text-align:center;background:#222;color:white;font-family:Arial}
+canvas{background:black;border:3px solid gold;display:block;margin:auto}
+button{font-size:16px;padding:6px;margin:3px;cursor:pointer}
+#box{background:#111;padding:5px;border:2px solid gold}
+</style>
+</head>
+<body>
+
+<h2>👑 LEGENDARY TAP BALLS</h2>
+
+<div id="box">
+Score: <span id="score">0</span> |
+Coins: <span id="coins">0</span> |
+Lives: <span id="lives">3</span> |
+Rank: <span id="rank">Bronze</span>
+</div>
+
+<button id="lootBtn">🎁 Loot Box (20 Coins)</button>
+
+<div id="skins">
+<h3>🎨 Skins Shop</h3>
+<button onclick="buySkin('ball',0)">⚽ Free</button>
+<button onclick="buySkin('star',50)">⭐ Star</button>
+<button onclick="buySkin('heart',80)">❤️ Heart</button>
+<button onclick="buySkin('fire',120)">🔥 Fire</button>
+<button onclick="buySkin('diamond',300)">💎 LEGENDARY Diamond</button>
+</div>
+
+<button onclick="showStats()">📊 Player Stats</button>
+
+<canvas id="gameCanvas" width="600" height="400"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+// ================= DATA SAVE =================
+let score = 0;
+let coins = Number(localStorage.getItem("coins")) || 0;
+let lives = Number(localStorage.getItem("lives")) || 3;
+let rank = localStorage.getItem("rank") || "Bronze";
+let currentSkin = localStorage.getItem("skin") || "ball";
+let ownedSkins = JSON.parse(localStorage.getItem("skins")) || ["ball"];
+let hits = 0;
+
+// ================= UI =================
+const scoreSpan = document.getElementById("score");
+const coinsSpan = document.getElementById("coins");
+const livesSpan = document.getElementById("lives");
+const rankSpan = document.getElementById("rank");
+
+coinsSpan.textContent = coins;
+livesSpan.textContent = lives;
+rankSpan.textContent = rank;
+
+// ================= BALLS =================
+let balls = [];
+function createBall(explosive=false){
+  return {
+    x:Math.random()*560+20,
+    y:Math.random()*-200,
+    r:15,
+    speed:3,
+    dx:Math.random()*2-1,
+    explosive:explosive
+  };
+}
+
+function init(){
+  balls=[];
+  for(let i=0;i<5;i++) balls.push(createBall());
+  balls.push(createBall(true));
+}
+init();
+
+// ================= DRAW SKINS =================
+function drawBall(b){
+  if(currentSkin=="ball"){
+    ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();
+  }
+  if(currentSkin=="star") drawStar(b.x,b.y,5,b.r,b.r/2);
+  if(currentSkin=="heart") drawHeart(b.x,b.y,b.r);
+  if(currentSkin=="fire"){
+    ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fillStyle="orange";ctx.fill();
+    ctx.beginPath();ctx.arc(b.x,b.y,b.r/2,0,Math.PI*2);ctx.fillStyle="yellow";ctx.fill();
+  }
+  if(currentSkin=="diamond"){
+    ctx.fillStyle="cyan";
+    ctx.beginPath();
+    ctx.moveTo(b.x,b.y-b.r);
+    ctx.lineTo(b.x+b.r,b.y);
+    ctx.lineTo(b.x,b.y+b.r);
+    ctx.lineTo(b.x-b.r,b.y);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+// star
+function drawStar(cx,cy,spikes,outer,inner){
+  let rot=Math.PI/2*3,x=cx,y=cy,step=Math.PI/spikes;
+  ctx.beginPath();ctx.moveTo(cx,cy-outer);
+  for(let i=0;i<spikes;i++){
+    x=cx+Math.cos(rot)*outer;y=cy+Math.sin(rot)*outer;ctx.lineTo(x,y);rot+=step;
+    x=cx+Math.cos(rot)*inner;y=cy+Math.sin(rot)*inner;ctx.lineTo(x,y);rot+=step;
+  }
+  ctx.closePath();ctx.fill();
+}
+
+// heart
+function drawHeart(x,y,s){
+  ctx.beginPath();
+  ctx.moveTo(x,y);
+  ctx.bezierCurveTo(x-s,y-s,x-2*s,y+s/2,x,y+s);
+  ctx.bezierCurveTo(x+2*s,y+s/2,x+s,y-s,x,y);
+  ctx.fill();
+}
+
+// ================= GAME LOOP =================
+function update(){
+  ctx.clearRect(0,0,600,400);
+  balls.forEach(b=>{
+    b.y+=b.speed;
+    b.x+=b.dx;
+    ctx.fillStyle=b.explosive?"red":"white";
+    drawBall(b);
+
+    if(b.y>400){
+      b.y=-20;
+      b.x=Math.random()*560+20;
+    }
+  });
+  requestAnimationFrame(update);
+}
+update();
+
+// ================= CLICK =================
+canvas.onclick = e=>{
+  const r=canvas.getBoundingClientRect();
+  const mx=e.clientX-r.left,my=e.clientY-r.top;
+
+  balls.forEach(b=>{
+    let dx=mx-b.x,dy=my-b.y;
+    if(dx*dx+dy*dy<b.r*b.r){
+      if(b.explosive){
+        lives--;
+        if(lives<0) lives=0;
+        localStorage.setItem("lives",lives);
+        livesSpan.textContent=lives;
+        alert("💥 خسرت قلب!");
+      }else{
+        score++; coins++; hits++;
+        scoreSpan.textContent=score;
+        coinsSpan.textContent=coins;
+        localStorage.setItem("coins",coins);
+
+        // كل 15 كرة قلب
+        if(hits>=15 && lives<3){
+          hits=0; lives++;
+          livesSpan.textContent=lives;
+          localStorage.setItem("lives",lives);
+          alert("❤️ قلب جديد!");
+        }
+
+        updateRank();
+      }
+      b.y=-20;
+    }
+  });
+};
+
+// ================= RANK SYSTEM =================
+function updateRank(){
+  if(coins>=0) rank="Bronze";
+  if(coins>=100) rank="Silver";
+  if(coins>=300) rank="Gold";
+  if(coins>=600) rank="Diamond";
+  rankSpan.textContent=rank;
+  localStorage.setItem("rank",rank);
+}
+
+// ================= SKIN SHOP =================
+function buySkin(skin,price){
+  if(ownedSkins.includes(skin)){
+    currentSkin=skin;
+    localStorage.setItem("skin",skin);
+    alert("تم اختيار الشكل!");
+    return;
+  }
+  if(coins>=price){
+    coins-=price;
+    ownedSkins.push(skin);
+    currentSkin=skin;
+    localStorage.setItem("coins",coins);
+    localStorage.setItem("skins",JSON.stringify(ownedSkins));
+    localStorage.setItem("skin",skin);
+    coinsSpan.textContent=coins;
+    alert("🎉 اشتريت Skin جديد!");
+  }else alert("❌ لا يوجد عملات كافية");
+}
+
+// ================= LOOT BOX =================
+document.getElementById("lootBtn").onclick=()=>{
+  if(coins<20){alert("ما عندك عملات");return;}
+  coins-=20; coinsSpan.textContent=coins;
+  localStorage.setItem("coins",coins);
+
+  let loot=["star","heart","fire","diamond"];
+  let s=loot[Math.floor(Math.random()*loot.length)];
+  ownedSkins.push(s);
+  localStorage.setItem("skins",JSON.stringify(ownedSkins));
+  alert("🎁 حصلت على: "+s);
+};
+
+// ================= STATS PAGE =================
+function showStats(){
+  alert(`
+📊 PLAYER STATS
+Score: ${score}
+Coins: ${coins}
+Lives: ${lives}
+Rank: ${rank}
+Skins Owned: ${ownedSkins.join(", ")}
+  `);
+}
+</script>
+</body>
+</html>
