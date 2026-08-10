@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vulnerable Web App - Exercise Platform</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #e74c3c;
+            padding-bottom: 10px;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .exercise {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .exercise h3 {
+            color: #e74c3c;
+            margin-top: 0;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .endpoint {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚠️ Vulnerability Testing Exercises</h1>
+        
+        <div class="warning">
+            <strong>Educational Purpose Only:</strong> This application contains deliberate security vulnerabilities for educational purposes. 
+            Only test on your local machine. Never test on websites without explicit permission.
+        </div>
+
+        <h2>Available Exercises</h2>
+
+        <div class="exercise">
+            <h3>1. SQL Injection</h3>
+            <p>Learn how SQL injection works and how to exploit it.</p>
+            <div class="endpoint">POST http://localhost:3000/login</div>
+            <p>Try these payloads in the username field:</p>
+            <code>' OR '1'='1</code><br>
+            <code>' OR 1=1 --</code><br>
+            <a href="/login">Go to Login Page →</a>
+        </div>
+
+        <div class="exercise">
+            <h3>2. Cross-Site Scripting (XSS)</h3>
+            <p>Learn how XSS vulnerabilities allow script injection.</p>
+            <div class="endpoint">GET http://localhost:3000/xss?name=&lt;script&gt;alert('XSS')&lt;/script&gt;</div>
+            <p>Try injecting JavaScript code through the name parameter.</p>
+            <a href="/xss">Go to XSS Page →</a>
+        </div>
+
+        <div class="exercise">
+            <h3>3. Insecure Direct Object References (IDOR)</h3>
+            <p>Learn how to access unauthorized resources by manipulating IDs.</p>
+            <div class="endpoint">GET http://localhost:3000/profile?id=1</div>
+            <p>Try changing the id parameter to access other users' profiles.</p>
+            <a href="/profile?id=1">Go to Profile Page →</a>
+        </div>
+
+        <div class="exercise">
+            <h3>4. Broken Access Control</h3>
+            <p>Learn how improper access controls can be bypassed.</p>
+            <div class="endpoint">GET http://localhost:3000/admin?role=admin</div>
+            <p>Try manipulating the role parameter to gain admin access.</p>
+            <a href="/admin">Go to Admin Page →</a>
+        </div>
+
+        <div class="exercise">
+            <h3>5. Path Traversal</h3>
+            <p>Learn how to access files outside the intended directory.</p>
+            <div class="endpoint">GET http://localhost:3000/file?file=../../etc/passwd</div>
+            <p>Try using directory traversal sequences to access sensitive files.</p>
+            <a href="/file?file=welcome.txt">Go to File Page →</a>
+        </div>
+
+        <div class="exercise">
+            <h3>6. Information Disclosure</h3>
+            <p>Learn how sensitive information can be exposed.</p>
+            <div class="endpoint">GET http://localhost:3000/debug</div>
+            <p>This endpoint exposes sensitive system information.</p>
+            <a href="/debug">Go to Debug Page →</a>
+        </div>
+
+        <div class="exercise">
+            <h3>7. Insecure API Endpoints</h3>
+            <p>Learn about API security vulnerabilities.</p>
+            <div class="endpoint">GET http://localhost:3000/api/users/1</div>
+            <p>This API endpoint exposes user data without authentication.</p>
+            <a href="/api/users/1">Go to API Page →</a>
+        </div>
+
+        <h2>Tools You Can Use</h2>
+        <ul>
+            <li><strong>Browser Developer Tools:</strong> F12 to inspect requests and modify parameters</li>
+            <li><strong>curl:</strong> Command-line tool for making HTTP requests</li>
+            <li><strong>Burp Suite:</strong> Web application security testing tool</li>
+            <li><strong>OWASP ZAP:</strong> Free web application security scanner</li>
+        </ul>
+
+        <h2>Getting Started</h2>
+        <ol>
+            <li>Start the server: <code>npm start</code></li>
+            <li>Open browser to <code>http://localhost:3000</code></li>
+            <li>Try each exercise and see if you can exploit the vulnerability</li>
+            <li>Read the detailed exercise guides in the <code>exercises/</code> directory</li>
+        </ol>
+    </div>
+</body>
+</html>

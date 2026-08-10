@@ -1,0 +1,1 @@
+Welcome to the Vulnerable Web App! This is a safe file.

@@ -1,0 +1,19 @@
+{
+  "name": "vulnerability-testing-exercises",
+  "version": "1.0.0",
+  "description": "Educational vulnerability testing exercises with a deliberately vulnerable web application",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "body-parser": "^1.20.2",
+    "sqlite3": "^5.1.6",
+    "express-session": "^1.17.3"
+  },
+  "keywords": ["security", "vulnerability", "testing", "education"],
+  "author": "",
+  "license": "MIT"
+}
